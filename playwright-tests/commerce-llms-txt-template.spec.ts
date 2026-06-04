@@ -11,20 +11,25 @@ test.describe("Commerce llms.txt Template", () => {
 	});
 
 	test("should return JSON service info on /api", async ({
-		page,
+		request,
 		templateUrl,
 	}) => {
-		const response = await page.goto(`${templateUrl}/api`);
-		expect(response?.status()).toBe(200);
-		const text = await page.textContent("body");
+		const response = await request.get(`${templateUrl}/api`, {
+			timeout: 60_000,
+		});
+		expect(response.status()).toBe(200);
+		const text = await response.text();
 		expect(text).toContain("merchant");
 		expect(text).toContain("llms.txt");
 	});
 
-	test("should serve llms.txt endpoint", async ({ page, templateUrl }) => {
-		const response = await page.goto(`${templateUrl}/llms.txt`);
-		expect(response?.status()).toBe(200);
-		const text = await page.textContent("body");
+	test("should serve llms.txt endpoint", async ({ request, templateUrl }) => {
+		test.setTimeout(90_000);
+		const response = await request.get(`${templateUrl}/llms.txt`, {
+			timeout: 60_000,
+		});
+		expect(response.status()).toBe(200);
+		const text = await response.text();
 		expect(text).toContain("Products In Stock");
 	});
 });

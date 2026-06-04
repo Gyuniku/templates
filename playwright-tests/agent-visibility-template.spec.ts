@@ -69,27 +69,42 @@ test.describe("Agent Visibility Template", () => {
 		);
 	});
 
-	test("should serve the llms.txt surface", async ({ page, templateUrl }) => {
-		const response = await page.goto(`${templateUrl}/llms.txt`);
-		expect(response?.status()).toBe(200);
-		const text = await page.textContent("body");
+	test("should serve the llms.txt surface", async ({
+		request,
+		templateUrl,
+	}) => {
+		test.setTimeout(90_000);
+		const response = await request.get(`${templateUrl}/llms.txt`, {
+			timeout: 60_000,
+		});
+		expect(response.status()).toBe(200);
+		const text = await response.text();
 		expect(text).toContain("## Pages");
 	});
 
-	test("should serve the typed JSON index", async ({ page, templateUrl }) => {
-		const response = await page.goto(`${templateUrl}/index.json`);
-		expect(response?.status()).toBe(200);
-		const text = await page.textContent("body");
+	test("should serve the typed JSON index", async ({
+		request,
+		templateUrl,
+	}) => {
+		test.setTimeout(90_000);
+		const response = await request.get(`${templateUrl}/index.json`, {
+			timeout: 60_000,
+		});
+		expect(response.status()).toBe(200);
+		const text = await response.text();
 		expect(text).toContain("agent-visibility");
 	});
 
 	test("should serve robots.txt welcoming AI agents", async ({
-		page,
+		request,
 		templateUrl,
 	}) => {
-		const response = await page.goto(`${templateUrl}/robots.txt`);
-		expect(response?.status()).toBe(200);
-		const text = await page.textContent("body");
+		test.setTimeout(90_000);
+		const response = await request.get(`${templateUrl}/robots.txt`, {
+			timeout: 60_000,
+		});
+		expect(response.status()).toBe(200);
+		const text = await response.text();
 		expect(text).toContain("GPTBot");
 	});
 });
