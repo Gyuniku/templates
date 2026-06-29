@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> **Source of truth:** [`CONTRIBUTING.md`](./CONTRIBUTING.md) defines all template _requirements_ (what a template must include to be accepted). This file only documents review/maintenance _patterns_ and _how-to_. If the two ever disagree on a requirement, `CONTRIBUTING.md` wins — fix this file.
+
 This guide helps AI agents review, maintain, and contribute to Cloudflare Worker templates. It documents patterns, common issues, and testing strategies learned from real PR reviews.
 
 ## Quick Reference

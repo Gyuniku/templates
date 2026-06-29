@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> **Source of truth:** [`CONTRIBUTING.md`](./CONTRIBUTING.md) is authoritative for all template _requirements_. This file repeats some of them for convenience, but if the two ever disagree, `CONTRIBUTING.md` wins — and the requirement detail here should be trimmed to match.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Repository Overview

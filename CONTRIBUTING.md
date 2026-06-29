@@ -1,286 +1,179 @@
 # Contributing
 
-We welcome template contributions that help demonstrate the full-stack capabilities of the Workers platform. If you're unsure about whether a template would be a good fit for this repository, feel free to open an issue with a link or description of your template idea to get feedback before opening a pull request.
+Thanks for helping grow the Cloudflare Workers Templates library! Templates are one of our highest-leverage ways to teach the platform — a good one turns "what can I build?" into a deployed app in minutes.
 
-We're especially interested in templates that use multiple binding or handler types together (e.g. [D1 databases](https://developers.cloudflare.com/d1/), [Workers AI](https://developers.cloudflare.com/workers-ai/), or [queue consumers](https://developers.cloudflare.com/queues/configuration/configure-queues/#consumer)).
+This guide is the **single source of truth** for contributing. If anything elsewhere (wiki, `CLAUDE.md`, `AGENTS.md`) disagrees with this file, **this file wins** — please open a PR to fix the other doc.
 
-## CI Checks
+## TL;DR
 
-Code formatting, linting, and all other checks are covered under the `check` script. The `fix` script will automatically fix as many of these issues as possible.
+1. Get the code onto a branch (Cloudflarian fast-path or fork — see below).
+2. Add a directory ending in `-template`.
+3. Run `pnpm install`, build your template, then `pnpm run fix` and `pnpm run check`.
+4. Open a PR against `main`. CI + the `/bonk` review bot will tell you exactly what's missing.
+5. A maintainer approves and merges. Public release happens on a tagged release.
 
-If CI is failing on your pull request, running `pnpm run fix` in the repository root might solve your problems.
+---
+
+## Who can contribute, and how
+
+### Cloudflarians (fast-path)
+
+You can push branches directly to the repo.
+
+1. Branch off `main` (no fork needed). If you don't have write access, ping the [DevDash Platform chat](https://chat.google.com/room/AAAA52PsKts?cls=7).
+2. Add your template, open a PR against `main`.
+3. Your PR automatically gets CI, a `/bonk` review, and (once you add the **`allow preview`** label) a dashboard preview link.
+
+### External contributors (fork + label)
+
+We welcome external templates. Because PRs from forks run in an untrusted context, previews are gated:
+
+1. Fork the repo and open a PR against `main` from your fork.
+2. CI (lint, tests) runs automatically.
+3. A maintainer adds the **`allow preview`** label to generate a dashboard preview link (this is a safety gate, not a judgment — it just lets us run trusted preview steps against your code).
+4. A maintainer reviews and merges.
+
+> Not sure your idea is a fit? Open a [Template Request issue](https://github.com/cloudflare/templates/issues/new/choose) first and we'll give early feedback before you build.
+
+---
+
+## What makes a good template
+
+- **Use-case driven, not tech-driven.** Name it for what it _does_ ("Astro AI Chat Bot"), not the binding it uses ("DO + Assets Template").
+- **Uses at least one Worker binding.** Bindings are the value prop. Provisionable today: D1, Hyperdrive, KV, Queues, R2, Vectorize. No-provision bindings (Durable Objects, Workflows, Browser Rendering) work out of the box.
+- **Has a visible UI.** Enough frontend that a newcomer understands what's happening. Worker-only? Serve a simple `public/` landing page via Workers Assets.
+- **Current, not experimental.** Use stable, GA features and recommended defaults. Avoid beta-only APIs that may churn.
+- **Single Worker.** Workers Builds doesn't deploy monorepos cleanly — one Worker per template.
+
+---
 
 ## Requirements
 
-In order to introduce a new template to this collection, the following requirements must all be satisfied. For a boiled-down version of these requirements, scroll down to the [Checklist](#checklist).
+These are the rules. The ones marked **[CI]** are enforced automatically — run `pnpm run check` locally and `pnpm run fix` to auto-resolve most of them. The ones marked **[human]** need a maintainer (usually an asset upload to the Cloudflare Templates account).
 
-### `package.json` content
+### Directory & naming **[CI]**
 
-Cloudflare's Templates Platform extracts `name`, `description`, and a `cloudflare` object directly from each template's `package.json` configuration. This extracted metadata provides content necessary for the template to be rendered in the Cloudflare Dashboard. If the minimally required values are not included in your template, it will fail CI.
+- Directory ends in `-template` and matches the `name` in `package.json` and the `name` in `wrangler.json(c)`.
 
-| Required?         | Package.json key               | Description                                                                                                                                                                                                                                           | Example                                                                                                  |
-| ----------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| ✅                | `name`                         | Kebab-case name of your template, should match directory, should end in `-template`.                                                                                                                                                                  | durable-chat-template                                                                                    |
-| ✅                | `description`                  | Brief, one-line description of the template                                                                                                                                                                                                           | Chat with other users in real-time using Durable Objects and PartyKit.                                   |
-|                   | `cloudflare`                   | Object you will nest all cloudflare-specific keys in                                                                                                                                                                                                  |                                                                                                          |
-|                   | `cloudflare.bindings`          | Object containing information about each binding. Keys should be the binding names and values should be an object with a "description" string. Inline markdown `` `code` ``, `**bold**`, `__italics__` and `[links](https://example.com/)` are valid. | ``{ "COOKIE_SIGNING_KEY": { "description": "Generate a random string using `openssl rand -hex 32`" } }`` |
-| _if publish=true_ | `cloudflare.label`             | Title Case version of name for use in Cloudflare's Dashboard                                                                                                                                                                                          | Durable Chat App                                                                                         |
-| _if publish=true_ | `cloudflare.products`          | List 3 or fewer products featured in your example                                                                                                                                                                                                     | ["D1", "Durable Objects"]                                                                                |
-| ❌                | `cloudflare.categories`        | String(s) that map to filter(s) in the template gallery view                                                                                                                                                                                          | ["starter", "storage"]                                                                                   |
-| _if publish=true_ | `cloudflare.preview_image_url` | 16:9 aspect screenshot of the template application                                                                                                                                                                                                    | (Link will be provided during PR review)                                                                 |
-| _if publish=true_ | `cloudflare.preview_icon_url`  | 16:9 aspect icon of the template application                                                                                                                                                                                                          | (Link will be provided during PR review)                                                                 |
-| ❌                | `cloudflare.publish`           | Boolean to opt-in for display in the Cloudflare Dashboard - leave out unless requested by the Cloudflare team                                                                                                                                         | (Primarily for internal contributor use)                                                                 |
+### `package.json`
 
-### Best Practices: `package.json`
+Our pipeline reads a `cloudflare` object from each template's `package.json` to render it in the dashboard. The "Enforced" column reflects what actually fails CI today (the template linter in `cli/`):
 
-- **`cloudflare.bindings.[bindingName].description`** - Include a description for any binding which requires additional information on how to configure, especially for any values which are found outside of Cloudflare (e.g. API keys).
-- **`cloudflare.products`** - Do not exceed 3 products listed. Focus on highlighting the most unique products featured in your template (e.g. majority of our templates leverage 'Worker Assets' in some capacity, but only a select few feature 'DO').
-- **`cloudflare.categories`**
-  - Today, categories are optional to include. In the future, we will support filters in the templates gallery at which point this will become a new template requirement.
-  - Only the following categories are supported: `"starter"`, `"storage"`, and `"ai"`. Anything outside of this set will be rejected by CI.
-- **`cloudflare.preview_image_url`**
-  - Can only be provided by a Cloudflare team member. Image files for icons and preview images are stored in the Cloudflare Templates CF account.
-  - Preview image should be a screenshot of the application running in-browser.
-- **`cloudflare.preview_icon_url`**
-  - Can only be provided by a Cloudflare team member. Image files for icons and preview images are stored in the Cloudflare Templates CF account.
-  - Preview icon should be an SVG representing the application.
+| Required?    | Key                                        | Enforced                | Description                                                                                              | Example                                            |
+| ------------ | ------------------------------------------ | ----------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| ✅           | `name`                                     | linter (`name` match)   | Kebab-case, matches directory, ends in `-template`                                                       | `durable-chat-template`                            |
+| ✅           | `description`                              | not linted (keep it!)   | One brief line; read by the pipeline for the dashboard card                                              | `Chat in real-time using Durable Objects.`         |
+| ✅           | `scripts.dev`                              | linter                  | Local dev command                                                                                        | `wrangler dev`                                     |
+| ✅           | `scripts.deploy`                           | linter                  | Deploy command                                                                                           | `wrangler deploy`                                  |
+| ✅           | `private: true` and **no** `version` field | supplemental check      | Templates are not published packages                                                                     |                                                    |
+| ✅           | `cloudflare.label`                         | linter                  | Title Case dashboard name                                                                                | `Durable Chat App`                                 |
+| ✅           | `cloudflare.products`                      | linter (must be array)  | ≤ 3 products, most distinctive ones                                                                      | `["Durable Objects"]`                              |
+| ✅           | `cloudflare.categories`                    | linter (must be array)  | Array; values limited to `"starter"`, `"storage"`, `"ai"`. Use `[]` if none apply                        | `["starter"]`                                      |
+|              | `cloudflare.bindings`                      | not linted              | Per-binding help (esp. external API keys). Inline `` `code` ``, `**bold**`, `[links](https://…)` allowed | `{ "API_KEY": { "description": "Get one at …" } }` |
+| if `publish` | `cloudflare.preview_image_url`             | linter (when `publish`) | 16:9, ≥ 500px screenshot — **[human]** uploaded by a maintainer                                          | (provided in review)                               |
+| if `publish` | `cloudflare.preview_icon_url`              | linter (when `publish`) | SVG icon — **[human]** uploaded by a maintainer                                                          | (provided in review)                               |
+|              | `cloudflare.publish`                       | n/a                     | `true` to feature in the dashboard gallery. Omit otherwise. **[human]** confirmed by a maintainer        | `true`                                             |
 
-### `package-lock.json`
+> **`label`, `products`, and `categories` are required even if you're not publishing.** The linter requires them whenever a `cloudflare` object exists (use `categories: []` if none apply). Only the preview image/icon are gated behind `publish: true`.
+>
+> **You do not need `publish: true` to contribute.** Many useful templates live in the repo without being featured in the dashboard. Leave it out unless a maintainer asks; they'll handle the preview assets and `publish` flip.
 
-All of our templates and Deploy to Cloudflare projects automatically set up Workers CI. In our testing, including a package lock file in the template repository speeds up module resolution by 80% or more.
+### `wrangler.json(c)` **[CI]**
 
-To generate a `package-lock.json` for your template, run this command in the root of the repository:
+- Use `wrangler.json` or `wrangler.jsonc` — **not** `wrangler.toml` (the linter auto-converts on `pnpm run fix`).
+- `compatibility_date` set to the repo's target date, `observability: { enabled: true }`, `upload_source_maps: true`, `name` matching the template.
+- **Top-level bindings only.** Deploy to Cloudflare reads top-level bindings; bindings nested in environments won't configure correctly.
 
-```sh
-pnpm fix:lockfiles
+### `README.md` **[CI for markers, human for content]**
+
+- A **Deploy to Cloudflare** button at the very top.
+- A "getting started" section: run locally, install any third-party tokens, what the app does.
+- A screenshot and/or live demo link.
+- Wrap the dashboard-facing summary in markers:
+
+  ```md
+  <!-- dash-content-start -->
+
+  Shown on the Template Details Page in the dashboard:
+  key features, bindings/frameworks used, how it works.
+
+  <!-- dash-content-end -->
+  ```
+
+  This block **should not** contain bootstrapping commands, shell snippets, or extra images — keep those in the full README outside the markers.
+
+### `.gitignore` **[CI]**
+
+- Must exist and ignore `node_modules` and `.wrangler`. A sensible default (plus framework add-ons) is in [the appendix](#appendix-default-gitignore).
+
+### `package-lock.json` **[CI]**
+
+- Deploy to Cloudflare sets up Workers CI; a committed `package-lock.json` cuts module resolution time ~80%. Generate it with `pnpm run fix:lockfiles`.
+
+### Secrets & environment variables
+
+- Use [Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/), [env vars](https://developers.cloudflare.com/workers/configuration/environment-variables/), or [Secrets Store](https://developers.cloudflare.com/secrets-store/).
+- Add a `.dev.vars.example` (or `.env.example`) documenting every required secret.
+- Validate them at runtime and **show a visible warning in the deployed UI** if anything's missing (see the [saas-admin example](https://saas-admin-template.templates.workers.dev/admin)).
+
+### Tests **[CI runs them; count is a review guideline]**
+
+Two layers, both required. CI runs your tests and fails on failures, but it does not _count_ them — the "minimum 5" is enforced by reviewers (and `/bonk`), not the linter:
+
+1. **Unit tests** — `vitest` via [`@cloudflare/vitest-pool-workers`](https://developers.cloudflare.com/workers/testing/vitest-integration/get-started/write-your-first-test/). **Minimum 5 meaningful tests** covering your template's core functionality.
+2. **Playwright E2E** — a `playwright-tests/{template-name}.spec.ts` smoke test of the critical user path. See the [E2E section in the README](./README.md#end-to-end-testing).
+
+### Code quality
+
+- TypeScript everywhere.
+- Use **Hono** for API routing unless you have a specific reason not to (don't hand-roll path routing in `fetch`).
+- Comment the Cloudflare-specific parts — these are teaching tools.
+
+---
+
+## Local workflow
+
+```bash
+pnpm install
+# build your template...
+pnpm run fix             # auto-format, auto-fix lint, convert wrangler.toml→json, generate lockfiles
+pnpm run check           # most CI checks (lint, lockfiles, prettier) — must pass
+cd <your-template-dir> && pnpm test   # run just your template's unit tests
+pnpm run test:e2e        # Playwright smoke tests
 ```
 
-### `README.md` content
+`pnpm run check` covers most—but not all—CI. The `private: true` / no-`version` rule runs in a separate supplemental check, and `description` isn't linted at all, so double-check those by hand. If CI is red, `pnpm run fix` resolves most of it, and the `/bonk` bot will comment on your PR with anything outstanding.
 
-Every `README.md` should include a “getting started” section that provides guidance for running the application locally, directions for installing any third-party tokens, and a description of the application’s functionality. You should also include a screenshot and/or live deployment of the application.
+## Getting your PR reviewed
 
-A portion of your template’s `README.md` file will be displayed on the Template Details Page in the Cloudflare Dashboard to provide the user with additional information about the template.
+- **`/bonk` reviews internal PRs automatically** and posts a checklist review. On any PR (including forks) you can trigger it with `/bonk` or `@ask-bonk review this PR`, or ask it questions (`/bonk why is the lockfile check failing?`).
+- A human maintainer gives the final approve + merge.
+- **Preview images/icons and `publish: true` are handled by maintainers** after review — call out in your PR description that they're pending, and attach the screenshot you'd like used.
 
-- ✅ This section _should_ include: Key features of the template, which bindings and frameworks the template uses, and a short description of how the template application works.
-- ❌ This section _should not_ include: Project bootstrapping instructions, shell commands, or additional images (but these things should still be included in the longer project's `README.md`).
+## Checklist
 
-You can designate the block of content to display by wrapping it in a markdown comment like so:
+- [ ] Directory ends in `-template`; names match across `package.json` and `wrangler.json(c)`
+- [ ] `package.json` has `description`, `scripts.dev`, `scripts.deploy`, `private: true`, no `version`
+- [ ] `cloudflare` object has `label`, `products` (≤ 3), and `categories` (use `[]` if none)
+- [ ] `wrangler.json(c)` (not `.toml`), top-level bindings, observability on
+- [ ] `README.md` with Deploy button at top + `dash-content` markers
+- [ ] `.gitignore` present (ignores `node_modules/` and `.wrangler/`)
+- [ ] `package-lock.json` committed (`pnpm run fix:lockfiles`)
+- [ ] ≥ 5 vitest tests + a Playwright E2E spec
+- [ ] `pnpm run check` passes locally + your template's `pnpm test` passes
+- [ ] PR opened against `main`; screenshot attached if you want it featured
 
-```md template/README.md
-This content will NOT be included in the Template Details Page
+---
 
-<!-- dash-content-start -->
+## Appendix: default `.gitignore`
 
-This content will be included in Template Details Page
-
-<!-- dash-content-end -->
-
-This content will NOT be included in the Template Details Page
-```
-
-### `.gitignore`
-
-Create a `.gitignore` file in your template folder. You should default to using the following:
-
-<details>
-<summary>Default `.gitignore`</summary>
-<!-- prettier-ignore-start -->
+At minimum you must ignore `node_modules/` and `.wrangler/`. The Workers-specific block below is the part most generic `.gitignore` generators miss — start with it, then append any framework block you need.
 
 ```txt
-# Created by https://www.toptal.com/developers/gitignore/api/macos,node,git
-# Edit at https://www.toptal.com/developers/gitignore?templates=macos,node,git
-
-### Git ###
-# Created by git for backups. To disable backups in Git:
-# $ git config --global mergetool.keepBackup false
-*.orig
-
-# Created by git when using merge tools for conflicts
-*.BACKUP.*
-*.BASE.*
-*.LOCAL.*
-*.REMOTE.*
-*_BACKUP_*.txt
-*_BASE_*.txt
-*_LOCAL_*.txt
-*_REMOTE_*.txt
-
-### macOS ###
-# General
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Icon must end with two \r
-Icon
-
-
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-### macOS Patch ###
-# iCloud generated files
-*.icloud
-
-### Node ###
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Directory for instrumented libs generated by jscoverage/JSCover
-lib-cov
-
-# Coverage directory used by tools like istanbul
-coverage
-*.lcov
-
-# nyc test coverage
-.nyc_output
-
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
-
-# Bower dependency directory (https://bower.io/)
-bower_components
-
-# node-waf configuration
-.lock-wscript
-
-# Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
-
-# Dependency directories
+# Dependencies
 node_modules/
-jspm_packages/
 
-# Snowpack dependency directory (https://snowpack.dev/)
-web_modules/
-
-# TypeScript cache
-*.tsbuildinfo
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Optional stylelint cache
-.stylelintcache
-
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-out
-
-# Nuxt.js build / generate output
-.nuxt
-dist
-
-# Gatsby files
-.cache/
-# Comment in the public line in if your project uses Gatsby and not Next.js
-# https://nextjs.org/blog/next-9-1#public-directory-support
-# public
-
-# vuepress build output
-.vuepress/dist
-
-# vuepress v2.x temp and cache directory
-.temp
-
-# Docusaurus cache and generated files
-.docusaurus
-
-# Serverless directories
-.serverless/
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# TernJS port file
-.tern-port
-
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
-
-# yarn v2
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.*
-
-### Node Patch ###
-# Serverless Webpack directories
-.webpack/
-
-# Optional stylelint cache
-
-# SvelteKit build / generate output
-.svelte-kit
-
-# End of https://www.toptal.com/developers/gitignore/api/macos,node,git
-
-### Wrangler ###
+# Wrangler
 .wrangler/
 .env*
 !.env.example
@@ -288,178 +181,34 @@ dist
 !.dev.vars.example
 ```
 
-<!-- prettier-ignore-end -->
-</details>
-
-You may also want to append additional blocks if using other common frameworks/tools:
+A fuller base (macOS, Node, logs, caches) plus framework add-ons:
 
 <details>
-<summary>Astro</summary>
-<!-- prettier-ignore-start -->
+<summary>Framework-specific blocks</summary>
 
 ```txt
 ### Astro ###
 .astro/
-```
 
-<!-- prettier-ignore-end -->
-</details>
-
-<details>
-<summary>OpenNext</summary>
-<!-- prettier-ignore-start -->
-
-```txt
 ### OpenNext ###
 .open-next/
 next-env.d.ts
-```
 
-<!-- prettier-ignore-end -->
-</details>
+### Next.js ###
+.next
+out
 
-<details>
-<summary>React Router</summary>
-<!-- prettier-ignore-start -->
-
-```txt
 ### React Router ###
 .react-router/
 /build/
-```
 
-<!-- prettier-ignore-end -->
-</details>
-
-<details>
-<summary>Remix</summary>
-<!-- prettier-ignore-start -->
-
-```txt
 ### Remix ###
 /build/
+
+### SvelteKit ###
+.svelte-kit
 ```
 
-<!-- prettier-ignore-end -->
 </details>
 
-### Worker secrets, environment variables, and Secrets Store secrets
-
-You can create templates which use [Worker secrets](https://developers.cloudflare.com/workers/platform/environment-variables#secrets), [environment variables](https://developers.cloudflare.com/workers/configuration/environment-variables) or [Secrets Store secrets](https://developers.cloudflare.com/secrets-store/).
-
-Although these will be configured by users during deployment, we still recommend confirming these are present and valid within your deployed application. Let your users know with a prominent warning within the deployed application's UI if anything is invalid. See [this example](https://saas-admin-template.templates.workers.dev/admin) from a current template.
-
-#### Workers Secrets
-
-Create a `.dev.vars.example` or `.env.example` file in the root of your template repository with a [dotenv](https://www.npmjs.com/package/dotenv) format:
-
-```ini
-COOKIE_SIGNING_KEY=my-secret # example comment: should be a real random string in production
-```
-
-[Secrets Store](https://developers.cloudflare.com/secrets-store/) secrets can be configured in the Wrangler configuration file as normal:
-
-```json
-{
-	"name": "my-worker",
-	"main": "./src/index.ts",
-	"compatibility_date": "$today",
-	"secrets_store_secrets": [
-		{
-			"binding": "API_KEY",
-			"store_id": "demo",
-			"secret_name": "api-key"
-		}
-	]
-}
-```
-
-#### Environment Variables
-
-Environment variables can also be configured in the Wrangler configuration file as normal:
-
-```json
-{
-	"name": "my-worker",
-	"main": "./src/index.ts",
-	"compatibility_date": "$today",
-	"vars": {
-		"API_HOST": "https://example.com"
-	}
-}
-```
-
-## Playwright E2E Tests
-
-All templates must include Playwright end-to-end tests to ensure critical functionality works correctly. Tests should be minimal smoke tests that verify the most important user flows.
-
-### Setting up Playwright Tests
-
-Playwright is installed
-
-1. **Create test file** in the playwright-tests directory. Your test file should match the directory name of your template.
-
-2. **Basic test structure**:
-
-   ```typescript
-   import { test, expect } from "@playwright/test";
-
-   test("homepage loads correctly", async ({ page }) => {
-   	await page.goto("/");
-   	await expect(page.locator("h1")).toBeVisible();
-   });
-   ```
-
-### Using Playwright Codegen
-
-Playwright's codegen feature lets you generate tests by clicking through your application:
-
-1. **Start your development server**:
-
-   ```bash
-   pnpm dev
-   ```
-
-2. **Run codegen**:
-
-   ```bash
-   pnpm test:e2e:codegen
-   ```
-
-3. **Record your test**:
-   - A browser window and Playwright Inspector will open
-   - Navigate through your application's critical paths
-   - Click, type, and interact as a user would
-   - Playwright automatically generates test code in the Inspector
-
-4. **Copy generated code** into your test file and refine as needed
-
-### Test Guidelines
-
-- **Keep tests minimal**: Focus on critical user paths only
-- **Test key functionality**: Form submissions, navigation, data loading
-- **Avoid implementation details**: Test what users see, not internal code
-- **Use descriptive test names**: Clearly describe what each test validates
-
-## Checklist
-
-The above requirements, distilled into checklist form:
-
-- [ ] Confirm your template directory ends in `-template`
-- [ ] Confirm your template is working as expected, both locally and deployed
-- [ ] Write a clear, concise, and helpful `README.md` - Use a developer-oriented tone; provide neither too much nor too little detail
-- [ ] Designate which section of content should be displayed in the Cloudflare Dashboard by wrapping it in \<!-- dash-content-start --> and \<!-- dash-content-end -->
-- [ ] Create a `.gitignore` file in your template directory
-- [ ] Include a link to the publicly-accessible deployed preview in your `README.md`
-- [ ] Include the most up-to-date package lock file
-- [ ] Add Playwright E2E tests covering critical user paths
-- [ ] Open a PR against the public repository's main branch
-
-#### Enforced by CI
-
-These checklist items are enforced by our CI/CD pipeline:
-
-- [ ] Existance of `.gitignore` file
-- [ ] Required metadata in `package.json` (`name`, `description`, `cloudflare.label`, `cloudflare.products`)
-- [ ] Include a preview image of the application (16:9 aspect ratio, >=500px width) in `cloudflare.preview_image_url`
-- [ ] Include a preview icon for the application (16:9 aspect ratio, SVG) in `cloudflare.preview_icon_url`
+For a complete, copy-pasteable base block, see any recent template's `.gitignore` (e.g. [`durable-chat-template/.gitignore`](https://github.com/cloudflare/templates/blob/main/durable-chat-template/.gitignore)).

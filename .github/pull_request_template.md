@@ -37,6 +37,8 @@ The following selections do not need to be completed if this PR only contains ch
 ```
 
 <!--
-Have you read our [Contributing guide](https://github.com/cloudflare/workers-sdk/blob/main/CONTRIBUTING.md)?
+Have you read our [Contributing guide](https://github.com/cloudflare/templates/blob/main/CONTRIBUTING.md)?
 In particular, for non-trivial changes, please always engage on the issue or create a discussion or feature request issue first before writing your code.
+
+Tip: `/bonk` will review this PR automatically. You can also ask it questions, e.g. `/bonk why is the lockfile check failing?`
 -->
