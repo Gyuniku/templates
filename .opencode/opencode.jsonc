@@ -1,0 +1,10 @@
+{
+	// Config for the /bonk review bot (see .github/workflows/bonk.yml).
+	// `instructions` loads our canonical docs into the bot's context so its
+	// review stays in lockstep with CONTRIBUTING.md — no separate prompt to maintain.
+	"$schema": "https://opencode.ai/config.json",
+	"model": {
+		"default": "opencode/claude-opus-4-5"
+	},
+	"instructions": ["CONTRIBUTING.md", "AGENTS.md"]
+}
