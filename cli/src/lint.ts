@@ -16,7 +16,7 @@ export type LintConfig = {
 	fix: boolean;
 };
 
-const integrationsPlatCategories = ["starter", "storage", "ai"];
+const TEMPLATE_CATEGORIES = ["starter", "storage", "ai"];
 
 export function lint(config: LintConfig) {
 	const templates = getAllTemplates(config.templateDirectory);
@@ -318,7 +318,7 @@ function lintPackageJson(
 			problems.push('"cloudflare.categories" must be an array');
 		} else {
 			pkg.cloudflare.categories.forEach((cat) => {
-				!["starter", "storage", "ai"].includes(cat) &&
+				!TEMPLATE_CATEGORIES.includes(cat) &&
 					problems.push(
 						`"cloudflare.categories" lists "${cat}", but can only include "starter", "storage", and "ai".`,
 					);
