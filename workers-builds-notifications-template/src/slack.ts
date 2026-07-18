@@ -25,6 +25,11 @@ import {
 // =============================================================================
 
 export interface SlackPayload {
+	/**
+	 * Plain-text fallback used by notifications and Slack-compatible webhook
+	 * implementations such as Discord's `/slack` endpoint.
+	 */
+	text: string;
 	blocks: KnownBlock[];
 }
 
@@ -128,7 +133,10 @@ function buildSuccessMessage(
 		blocks.push(buildContextBlock(contextElements));
 	}
 
-	return { blocks };
+	return {
+		text: `✅ ${title}: ${workerName}${buttonUrl ? `\n${buttonUrl}` : ""}`,
+		blocks,
+	};
 }
 
 function buildFailureMessage(
@@ -159,7 +167,10 @@ function buildFailureMessage(
 		text: { type: "mrkdwn", text: `\`\`\`${error}\`\`\`` },
 	});
 
-	return { blocks };
+	return {
+		text: `❌ Build Failed: ${workerName}\n${error}${dashUrl ? `\n${dashUrl}` : ""}`,
+		blocks,
+	};
 }
 
 function buildCancelledMessage(event: CloudflareEvent): SlackPayload {
@@ -179,15 +190,21 @@ function buildCancelledMessage(event: CloudflareEvent): SlackPayload {
 		blocks.push(buildContextBlock(contextElements));
 	}
 
-	return { blocks };
+	return {
+		text: `⚠️ Build Cancelled: ${workerName}${dashUrl ? `\n${dashUrl}` : ""}`,
+		blocks,
+	};
 }
 
 function buildFallbackMessage(event: CloudflareEvent): SlackPayload {
+	const text = `📢 ${event.type || "Unknown event"}`;
+
 	return {
+		text,
 		blocks: [
 			{
 				type: "section",
-				text: { type: "mrkdwn", text: `📢 ${event.type || "Unknown event"}` },
+				text: { type: "mrkdwn", text },
 			},
 		],
 	};

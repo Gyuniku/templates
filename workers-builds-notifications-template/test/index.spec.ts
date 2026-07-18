@@ -1,7 +1,9 @@
 import { env, createMessageBatch } from "cloudflare:test";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import worker, { type CloudflareEvent } from "../src/index";
+import worker from "../src/index";
+import type { CloudflareEvent } from "../src/types";
 import { extractBuildError } from "../src/helpers";
+import { buildSlackPayload } from "../src/slack";
 
 // =============================================================================
 // UNIT TESTS: Helper Functions
@@ -89,6 +91,17 @@ function createQueueMessage(
 		body: event,
 	};
 }
+
+describe("Discord webhook compatibility", () => {
+	it("includes non-empty top-level text for the /slack endpoint", () => {
+		const payload = buildSlackPayload(createMockEvent(), null, null, []);
+
+		expect(payload.text.trim()).not.toBe("");
+		expect(payload.text).toContain("Production Deploy");
+		expect(payload.text).toContain("test-worker");
+		expect(payload.blocks).not.toHaveLength(0);
+	});
+});
 
 // =============================================================================
 // INTEGRATION TESTS
@@ -179,6 +192,7 @@ describe("Workers Builds Notifications", () => {
 
 			expect(slackPayloads).toHaveLength(1);
 			const payload = slackPayloads[0];
+			expect(payload.text).toContain("Production Deploy");
 			expect(payload.blocks).toBeDefined();
 			expect(payload.blocks[0].text.text).toContain("Production Deploy");
 			expect(payload.blocks[0].text.text).toContain("test-worker");

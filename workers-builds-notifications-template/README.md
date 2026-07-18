@@ -103,6 +103,9 @@ wrangler deploy
 3. Copy the webhook URL
 4. Append `/slack` to the URL (Discord supports Slack-formatted payloads)
 
+The generated payload includes a top-level `text` fallback because Discord's
+Slack-compatible endpoint does not render Slack Block Kit `blocks` by themselves.
+
 #### Other Webhooks
 
 Modify the payload format in `src/index.ts` to match your webhook's expected format.
