@@ -73,6 +73,12 @@ export interface BuildDetailsResponse {
 	};
 }
 
+export interface CustomDomainsResponse {
+	result?: Array<{
+		hostname?: string;
+	}>;
+}
+
 export interface SubdomainResponse {
 	result?: {
 		subdomain?: string;

@@ -12,6 +12,7 @@ Get notified when your Workers Builds complete, fail, or are cancelled. This tem
 - 🔗 Works with any webhook (Slack, Discord, custom endpoints)
 - 📋 Includes build details: project name, branch, commit, and author
 - 📜 Smart error extraction for failed builds, preview URL and live deployment URL for successful builds
+- 🌐 Custom Domain detection for production Workers, with `workers.dev` fallback
 
 ## How It Works
 
@@ -205,6 +206,9 @@ Trigger a build on any worker in your account. You should see a notification in 
 | ⚠️ Build cancelled              | Cancellation note |
 
 > **Note:** Build started/queued events are acknowledged but do not send notifications.
+> For successful production builds, the notification uses the first Custom Domain
+> attached to the Worker. If no Custom Domain is attached, it falls back to the
+> Worker's `workers.dev` URL.
 
 ---
 
@@ -290,7 +294,8 @@ The queue must be created before deploying. See [Step 1: Create a Queue](#1-crea
 ### URLs not appearing
 
 - **Preview URL missing**: Build was for main/master branch (shows Live URL instead)
-- **Live URL missing**: Check token has correct permissions
+- **Custom Domain missing**: Confirm it is attached to the deployed Worker and the token has Workers Scripts: Read
+- **Live URL missing**: Check token permissions and confirm either a Custom Domain or `workers.dev` route is available
 
 ---
 

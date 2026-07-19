@@ -6,6 +6,7 @@ import type {
 	Env,
 	CloudflareEvent,
 	BuildDetailsResponse,
+	CustomDomainsResponse,
 	SubdomainResponse,
 	LogsResponse,
 } from "./types";
@@ -20,6 +21,39 @@ const MAX_LOG_PAGES = 50;
 // =============================================================================
 // BUILD URLS
 // =============================================================================
+
+/**
+ * Returns the first Custom Domain attached to a Worker.
+ * A lookup failure is non-fatal because callers can use the workers.dev URL.
+ */
+async function fetchCustomDomainUrl(
+	accountId: string,
+	workerName: string,
+	apiToken: string,
+): Promise<string | null> {
+	try {
+		const response = await fetch(
+			`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/domains?service=${encodeURIComponent(workerName)}`,
+			{
+				headers: { Authorization: `Bearer ${apiToken}` },
+			},
+		);
+
+		if (!response.ok) {
+			return null;
+		}
+
+		const data: CustomDomainsResponse = await response.json();
+		const hostname = data.result
+			?.find((domain) => domain.hostname?.trim())
+			?.hostname?.trim();
+
+		return hostname ? `https://${hostname}/` : null;
+	} catch (error) {
+		console.warn("Failed to fetch Custom Domains:", error);
+		return null;
+	}
+}
 
 /**
  * Fetches preview/live URLs for a successful build.
@@ -50,7 +84,17 @@ export async function fetchBuildUrls(
 			return { previewUrl: buildData.result.preview_url, liveUrl: null };
 		}
 
-		// Fall back to constructing live URL from subdomain
+		const customDomainUrl = await fetchCustomDomainUrl(
+			accountId,
+			workerName,
+			env.CLOUDFLARE_API_TOKEN,
+		);
+
+		if (customDomainUrl) {
+			return { previewUrl: null, liveUrl: customDomainUrl };
+		}
+
+		// Fall back to constructing the workers.dev URL from the account subdomain.
 		const subRes = await fetch(
 			`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/subdomain`,
 			{

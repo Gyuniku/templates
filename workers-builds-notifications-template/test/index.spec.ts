@@ -146,10 +146,22 @@ describe("Workers Builds Notifications", () => {
 	// =========================================================================
 
 	describe("Successful Builds", () => {
-		it("should send production deploy notification with live URL", async () => {
+		it("should prefer a production custom domain over the workers.dev URL", async () => {
 			mockFetch((url) => {
 				if (url.includes("/builds/builds/") && !url.includes("/logs")) {
 					return new Response(JSON.stringify({ result: {} }));
+				}
+				if (url.includes("/workers/domains")) {
+					return new Response(
+						JSON.stringify({
+							result: [
+								{
+									hostname: "fes.hololic.com",
+									service: "hololicfes-frontend-production",
+								},
+							],
+						}),
+					);
 				}
 				if (url.includes("/subdomain")) {
 					return new Response(
@@ -164,6 +176,10 @@ describe("Workers Builds Notifications", () => {
 
 			const event = createMockEvent({
 				type: "cf.workersBuilds.worker.build.succeeded",
+				source: {
+					type: "workersBuilds.worker",
+					workerName: "hololicfes-frontend-production",
+				},
 				payload: {
 					buildUuid: "build-123",
 					status: "stopped",
@@ -193,9 +209,56 @@ describe("Workers Builds Notifications", () => {
 			expect(slackPayloads).toHaveLength(1);
 			const payload = slackPayloads[0];
 			expect(payload.text).toContain("Production Deploy");
+			expect(payload.text).toContain("https://fes.hololic.com/");
 			expect(payload.blocks).toBeDefined();
 			expect(payload.blocks[0].text.text).toContain("Production Deploy");
-			expect(payload.blocks[0].text.text).toContain("test-worker");
+			expect(payload.blocks[0].text.text).toContain(
+				"hololicfes-frontend-production",
+			);
+			expect(payload.blocks[0].accessory.url).toBe("https://fes.hololic.com/");
+			expect(
+				fetchCalls.some((call) =>
+					call.url.includes(
+						"/workers/domains?service=hololicfes-frontend-production",
+					),
+				),
+			).toBe(true);
+			expect(
+				fetchCalls.some((call) => call.url.includes("/workers/subdomain")),
+			).toBe(false);
+		});
+
+		it("should fall back to the workers.dev URL without a custom domain", async () => {
+			mockFetch((url) => {
+				if (url.includes("/builds/builds/") && !url.includes("/logs")) {
+					return new Response(JSON.stringify({ result: {} }));
+				}
+				if (url.includes("/workers/domains")) {
+					return new Response(JSON.stringify({ result: [] }));
+				}
+				if (url.includes("/subdomain")) {
+					return new Response(
+						JSON.stringify({ result: { subdomain: "my-account" } }),
+					);
+				}
+				if (url.includes("hooks.slack.com")) {
+					return new Response("ok");
+				}
+				return new Response("Not found", { status: 404 });
+			});
+
+			const messages = [createQueueMessage(createMockEvent())];
+			const batch = createMessageBatch("builds-event-subscriptions", messages);
+
+			await worker.queue(batch, env);
+
+			expect(slackPayloads).toHaveLength(1);
+			expect(slackPayloads[0].text).toContain(
+				"https://test-worker.my-account.workers.dev",
+			);
+			expect(slackPayloads[0].blocks[0].accessory.url).toBe(
+				"https://test-worker.my-account.workers.dev",
+			);
 		});
 
 		it("should send preview deploy notification for feature branch", async () => {
